@@ -1,0 +1,362 @@
+// ============================================================
+// Jyotish Journey - Global Styles
+// ============================================================
+
+:root {
+  --jj-primary: #6a0dad;
+  --jj-primary-light: #9b59b6;
+  --jj-primary-dark: #4a0072;
+  --jj-accent: #f39c12;
+  --jj-accent-glow: #ffd700;
+  --jj-bg-dark: #0a0a1a;
+  --jj-bg-card: rgba(18, 18, 37, 0.85);
+  --jj-bg-surface: rgba(26, 26, 46, 0.82);
+  --jj-text: #e0e0e0;
+  --jj-text-muted: #8888aa;
+  --jj-text-bright: #ffffff;
+  --jj-border: rgba(42, 42, 74, 0.7);
+  --jj-success: #27ae60;
+  --jj-danger: #e74c3c;
+  --jj-gradient: linear-gradient(135deg, var(--jj-primary-dark), var(--jj-primary), var(--jj-accent));
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+app-root,
+app-root > main,
+router-outlet + * {
+  display: block;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+html {
+  height: 100%;
+  background-color: #06060f;
+}
+
+body {
+  height: 100%;
+  font-family: 'Inter', sans-serif;
+  background: transparent;
+  color: var(--jj-text);
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Cinzel', serif;
+  color: var(--jj-text-bright);
+}
+
+h5, h6 {
+  font-family: 'Lora', serif;
+}
+
+a {
+  color: var(--jj-accent);
+  text-decoration: none;
+  transition: color 0.3s ease;
+
+  &:hover {
+    color: var(--jj-accent-glow);
+  }
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  width: 100%;
+}
+
+// Responsive font scaling
+html { font-size: 16px; }
+
+@media (max-width: 480px) {
+  html { font-size: 14px; }
+  .container { padding: 0 12px; }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+  html { font-size: 15px; }
+  .container { padding: 0 16px; }
+}
+
+// Stars background (reusable)
+.stars-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+
+  .star {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    background: white;
+    border-radius: 50%;
+    animation: twinkle var(--duration, 3s) ease-in-out infinite alternate;
+    opacity: 0;
+  }
+
+  @for $i from 1 through 100 {
+    .star:nth-child(#{$i}) {
+      left: random(100) * 1%;
+      top: random(100) * 1%;
+      --duration: #{2 + random(4)}s;
+      animation-delay: #{random(5)}s;
+    }
+  }
+}
+
+@keyframes twinkle {
+  0% { opacity: 0; transform: scale(0.5); }
+  100% { opacity: 0.8; transform: scale(1.2); }
+}
+
+// Glow effect
+.golden-glow {
+  text-shadow: 0 0 10px rgba(243, 156, 18, 0.5),
+               0 0 20px rgba(243, 156, 18, 0.3);
+}
+
+// Buttons
+.btn-primary {
+  background: var(--jj-gradient);
+  color: white;
+  border: none;
+  padding: 12px 32px;
+  border-radius: 30px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(106, 13, 173, 0.4);
+  }
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--jj-accent);
+  border: 2px solid var(--jj-accent);
+  padding: 10px 28px;
+  border-radius: 30px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: var(--jj-accent);
+    color: var(--jj-bg-dark);
+  }
+}
+
+// Cards
+.card {
+  background: var(--jj-bg-card);
+  border: 1px solid var(--jj-border);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+
+  &:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 60px rgba(106, 13, 173, 0.2),
+                0 0 30px rgba(243, 156, 18, 0.1);
+    border-color: var(--jj-primary-light);
+  }
+}
+
+// Form styling
+.form-field {
+  margin-bottom: 20px;
+
+  label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--jj-text-muted);
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  input, textarea, select {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--jj-bg-surface);
+    border: 1px solid var(--jj-border);
+    border-radius: 10px;
+    color: var(--jj-text);
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+
+    &:focus {
+      outline: none;
+      border-color: var(--jj-primary-light);
+      box-shadow: 0 0 15px rgba(106, 13, 173, 0.2);
+    }
+
+    &::placeholder {
+      color: var(--jj-text-muted);
+    }
+  }
+}
+
+// Tags
+.tag {
+  display: inline-block;
+  padding: 4px 14px;
+  background: rgba(106, 13, 173, 0.2);
+  color: var(--jj-primary-light);
+  border-radius: 20px;
+  font-size: 0.8rem;
+  margin: 2px 4px;
+  border: 1px solid rgba(106, 13, 173, 0.3);
+}
+
+// Material overrides for dark theme
+.mat-mdc-snack-bar-container {
+  --mdc-snackbar-container-color: var(--jj-bg-surface);
+  --mdc-snackbar-supporting-text-color: var(--jj-text);
+}
+
+// Scrollbar
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--jj-bg-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--jj-primary-dark);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--jj-primary);
+}
+
+// Quill editor overrides
+.ql-toolbar.ql-snow {
+  background: var(--jj-bg-surface);
+  border-color: var(--jj-border) !important;
+  border-radius: 10px 10px 0 0;
+
+  .ql-stroke { stroke: var(--jj-text-muted); }
+  .ql-fill { fill: var(--jj-text-muted); }
+  .ql-picker-label { color: var(--jj-text-muted); }
+}
+
+.ql-container.ql-snow {
+  border-color: var(--jj-border) !important;
+  border-radius: 0 0 10px 10px;
+  background: var(--jj-bg-surface);
+  color: var(--jj-text);
+  min-height: 300px;
+  font-size: 1rem;
+  font-family: 'Lora', serif;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.ql-editor {
+  min-height: 300px;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+  white-space: pre-wrap;
+
+  &.ql-blank::before {
+    color: white;
+    font-style: italic;
+    opacity: 0.7;
+  }
+
+  p, li, h1, h2, h3, h4, h5, h6, blockquote {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+.blog-content img,
+.preview-content img,
+.ql-editor img {
+  max-width: 100% !important;
+  width: auto !important;
+  height: auto !important;
+  display: block;
+  object-fit: contain;
+}
+
+// ============================================================
+// Global responsive overrides
+// ============================================================
+
+@media (max-width: 480px) {
+  .btn-primary {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+  }
+  .btn-outline {
+    padding: 8px 20px;
+    font-size: 0.9rem;
+  }
+  .form-field input, .form-field textarea, .form-field select {
+    padding: 10px 12px;
+    font-size: 0.95rem;
+  }
+  .card:hover {
+    transform: none;
+  }
+  h1 { font-size: 1.6rem; }
+  h2 { font-size: 1.3rem; }
+  h3 { font-size: 1.1rem; }
+}
+
+@media (max-width: 768px) {
+  .ql-container.ql-snow { min-height: 200px; }
+  .ql-editor { min-height: 200px; }
+  .ql-toolbar.ql-snow {
+    padding: 6px;
+    .ql-formats { margin-right: 8px; }
+  }
+}
+
+@media (max-width: 480px) {
+  .ql-container.ql-snow { min-height: 160px; font-size: 0.9rem; }
+  .ql-editor { min-height: 160px; }
+  .ql-toolbar.ql-snow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    padding: 4px;
+    .ql-formats { margin-right: 4px; }
+    button { width: 26px; height: 26px; }
+  }
+}
+
+@media (hover: none) {
+  .card:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}

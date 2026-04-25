@@ -1,0 +1,30 @@
+# Environment secrets
+.env
+
+# IDE
+.idea/
+.vscode/
+*.iml
+.cursor/
+
+# Java build
+**/target/
+
+# Node
+**/node_modules/
+frontend/dist/
+frontend/.angular/
+
+# Uploads
+**/uploads/
+
+# Logs
+*.log
+
+# H2 database files
+**/*.mv.db
+**/*.trace.db
+
+# OS
+.DS_Store
+Thumbs.db
