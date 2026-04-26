@@ -43,17 +43,16 @@ const STAR_PARALLAX = 0.02;
 
 const MIN_ZOOM = 0.4;
 const MAX_ZOOM = 3.5;
-const MIN_TILT = 0.05;  // nearly top-down
-const MAX_TILT = 0.95;  // nearly edge-on
+const MIN_TILT = 0.05;
+const MAX_TILT = 0.95;
 
 @Component({
   selector: 'app-cosmic-canvas',
   standalone: true,
   template: `<canvas #cosmicCanvas class="cosmic-canvas"></canvas>`,
-  host: { 'style': 'pointer-events: none' },
   styles: [`
-    :host { display: block; position: absolute; inset: 0; z-index: 0; pointer-events: none; }
-    .cosmic-canvas { width: 100%; height: 100%; display: block; pointer-events: none; }
+    :host { display: block; position: absolute; inset: 0; z-index: 0; }
+    .cosmic-canvas { width: 100%; height: 100%; display: block; touch-action: none; }
   `]
 })
 export class CosmicCanvasComponent implements AfterViewInit, OnDestroy {
@@ -83,12 +82,11 @@ export class CosmicCanvasComponent implements AfterViewInit, OnDestroy {
   private hoveredPlanet: { name: string; x: number; y: number } | null = null;
   private shootTimer = 0;
 
-  // Zoom & drag camera
   private zoom = 1;
   private smoothZoom = 1;
-  private tilt = 0.28;         // vertical viewing angle
+  private tilt = 0.28;
   private smoothTilt = 0.28;
-  private camRotation = 0;     // horizontal orbit rotation offset (radians)
+  private camRotation = 0;
   private smoothCamRotation = 0;
   private isDragging = false;
   private dragStartX = 0;
@@ -99,8 +97,9 @@ export class CosmicCanvasComponent implements AfterViewInit, OnDestroy {
   private controlsHintTimer = 0;
 
   private isTouchDevice = false;
+  private lastPinchDist = 0;
+  private touchStartCount = 0;
 
-  // Bound event handlers for cleanup
   private handlers: { el: EventTarget; ev: string; fn: EventListener }[] = [];
 
   constructor(private ngZone: NgZone) {}
@@ -116,57 +115,138 @@ export class CosmicCanvasComponent implements AfterViewInit, OnDestroy {
 
     this.isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-    if (!this.isTouchDevice) {
-      const hero = canvas.closest('.hero') || canvas.parentElement!;
-
-      this.on(hero, 'mousemove', (e: Event) => {
-        const me = e as MouseEvent;
-        const rect = canvas.getBoundingClientRect();
-        this.mouseX = ((me.clientX - rect.left) / rect.width - 0.5) * 2;
-        this.mouseY = ((me.clientY - rect.top) / rect.height - 0.5) * 2;
-
-        if (this.isDragging) {
-          const dx = me.clientX - this.dragStartX;
-          const dy = me.clientY - this.dragStartY;
-          this.camRotation = this.dragStartRotation + dx * 0.005;
-          this.tilt = Math.max(MIN_TILT, Math.min(MAX_TILT, this.dragStartTilt - dy * 0.002));
-        }
-      });
-
-      this.on(hero, 'mouseleave', () => {
-        this.mouseX = 0; this.mouseY = 0;
-        this.isDragging = false;
-        (hero as HTMLElement).style.cursor = '';
-      });
-
-      this.on(hero, 'mousedown', (e: Event) => {
-        const me = e as MouseEvent;
-        if (me.button !== 0) return;
-        this.isDragging = true;
-        this.dragStartX = me.clientX;
-        this.dragStartY = me.clientY;
-        this.dragStartTilt = this.tilt;
-        this.dragStartRotation = this.camRotation;
-        (hero as HTMLElement).style.cursor = 'grabbing';
-        this.fadeHint();
-      });
-
-      this.on(window, 'mouseup', () => {
-        if (this.isDragging) {
-          this.isDragging = false;
-          (hero as HTMLElement).style.cursor = '';
-        }
-      });
-
-      this.on(hero, 'dblclick', () => {
-        this.zoom = 1; this.tilt = 0.28; this.camRotation = 0;
-      });
+    if (this.isTouchDevice) {
+      this.setupTouchEvents(canvas);
+    } else {
+      this.setupMouseEvents(canvas);
     }
 
     this.ngZone.runOutsideAngular(() => {
       this.lastTime = performance.now();
       this.loop(this.lastTime);
     });
+  }
+
+  private setupMouseEvents(canvas: HTMLCanvasElement): void {
+    this.on(canvas, 'mousemove', (e: Event) => {
+      const me = e as MouseEvent;
+      const rect = canvas.getBoundingClientRect();
+      this.mouseX = ((me.clientX - rect.left) / rect.width - 0.5) * 2;
+      this.mouseY = ((me.clientY - rect.top) / rect.height - 0.5) * 2;
+
+      if (this.isDragging) {
+        const dx = me.clientX - this.dragStartX;
+        const dy = me.clientY - this.dragStartY;
+        this.camRotation = this.dragStartRotation + dx * 0.005;
+        this.tilt = Math.max(MIN_TILT, Math.min(MAX_TILT, this.dragStartTilt - dy * 0.002));
+      }
+    });
+
+    this.on(canvas, 'mouseleave', () => {
+      this.mouseX = 0; this.mouseY = 0;
+      this.isDragging = false;
+      canvas.style.cursor = 'crosshair';
+    });
+
+    this.on(canvas, 'mousedown', (e: Event) => {
+      const me = e as MouseEvent;
+      if (me.button !== 0) return;
+      this.isDragging = true;
+      this.dragStartX = me.clientX;
+      this.dragStartY = me.clientY;
+      this.dragStartTilt = this.tilt;
+      this.dragStartRotation = this.camRotation;
+      canvas.style.cursor = 'grabbing';
+      this.fadeHint();
+    });
+
+    this.on(window, 'mouseup', () => {
+      if (this.isDragging) {
+        this.isDragging = false;
+        canvas.style.cursor = 'crosshair';
+      }
+    });
+
+    this.on(canvas, 'wheel', (e: Event) => {
+      const we = e as WheelEvent;
+      e.preventDefault();
+      this.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, this.zoom - we.deltaY * 0.001));
+      this.fadeHint();
+    }, { passive: false });
+
+    this.on(canvas, 'dblclick', () => {
+      this.zoom = 1; this.tilt = 0.28; this.camRotation = 0;
+    });
+  }
+
+  private setupTouchEvents(canvas: HTMLCanvasElement): void {
+    this.on(canvas, 'touchstart', (e: Event) => {
+      const te = e as TouchEvent;
+      e.preventDefault();
+      this.fadeHint();
+      this.touchStartCount = te.touches.length;
+
+      if (te.touches.length === 1) {
+        this.isDragging = true;
+        this.dragStartX = te.touches[0].clientX;
+        this.dragStartY = te.touches[0].clientY;
+        this.dragStartTilt = this.tilt;
+        this.dragStartRotation = this.camRotation;
+
+        const rect = canvas.getBoundingClientRect();
+        this.mouseX = ((te.touches[0].clientX - rect.left) / rect.width - 0.5) * 2;
+        this.mouseY = ((te.touches[0].clientY - rect.top) / rect.height - 0.5) * 2;
+      } else if (te.touches.length === 2) {
+        this.isDragging = false;
+        this.lastPinchDist = this.pinchDistance(te.touches);
+      }
+    }, { passive: false });
+
+    this.on(canvas, 'touchmove', (e: Event) => {
+      const te = e as TouchEvent;
+      e.preventDefault();
+
+      if (te.touches.length === 1 && this.isDragging) {
+        const dx = te.touches[0].clientX - this.dragStartX;
+        const dy = te.touches[0].clientY - this.dragStartY;
+        this.camRotation = this.dragStartRotation + dx * 0.008;
+        this.tilt = Math.max(MIN_TILT, Math.min(MAX_TILT, this.dragStartTilt - dy * 0.003));
+
+        const rect = canvas.getBoundingClientRect();
+        this.mouseX = ((te.touches[0].clientX - rect.left) / rect.width - 0.5) * 2;
+        this.mouseY = ((te.touches[0].clientY - rect.top) / rect.height - 0.5) * 2;
+      } else if (te.touches.length === 2) {
+        const dist = this.pinchDistance(te.touches);
+        if (this.lastPinchDist > 0) {
+          const scale = dist / this.lastPinchDist;
+          this.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, this.zoom * scale));
+        }
+        this.lastPinchDist = dist;
+      }
+    }, { passive: false });
+
+    this.on(canvas, 'touchend', (e: Event) => {
+      const te = e as TouchEvent;
+      if (te.touches.length === 0) {
+        this.isDragging = false;
+        this.lastPinchDist = 0;
+        this.mouseX = 0;
+        this.mouseY = 0;
+      } else if (te.touches.length === 1) {
+        this.isDragging = true;
+        this.dragStartX = te.touches[0].clientX;
+        this.dragStartY = te.touches[0].clientY;
+        this.dragStartTilt = this.tilt;
+        this.dragStartRotation = this.camRotation;
+        this.lastPinchDist = 0;
+      }
+    });
+  }
+
+  private pinchDistance(touches: TouchList): number {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
   }
 
   ngOnDestroy(): void {
@@ -479,7 +559,7 @@ export class CosmicCanvasComponent implements AfterViewInit, OnDestroy {
     this.ctx.fillText(c.name, lx, ly + symSize * 0.6);
   }
 
-  // ===== Orbits (zoomed & tilted) =====
+  // ===== Orbits =====
 
   private drawOrbits(px: number, py: number): void {
     const z = this.smoothZoom;
@@ -544,7 +624,7 @@ export class CosmicCanvasComponent implements AfterViewInit, OnDestroy {
     this.ctx.restore();
   }
 
-  // ===== Planets (zoomed, tilted, rotated camera) =====
+  // ===== Planets =====
 
   private drawPlanets(dt: number, t: number, px: number, py: number): void {
     this.hoveredPlanet = null;
@@ -657,20 +737,22 @@ export class CosmicCanvasComponent implements AfterViewInit, OnDestroy {
     this.ctx.restore();
   }
 
-  // ===== Controls hint (fades after 5s or on interaction) =====
+  // ===== Controls hint =====
 
   private drawControlsHint(): void {
-    if (this.controlsHintAlpha <= 0 || this.isTouchDevice) return;
+    if (this.controlsHintAlpha <= 0) return;
     const a = this.controlsHintAlpha;
     this.ctx.save();
     this.ctx.globalAlpha = a * 0.7;
 
-    const lines = ['Drag to rotate view', 'Double-click to reset'];
+    const lines = this.isTouchDevice
+      ? ['Drag to rotate view', 'Pinch to zoom', 'Double-tap to reset']
+      : ['Drag to rotate view', 'Scroll to zoom', 'Double-click to reset'];
     const lh = 18;
     const bx = 16, by = this.h - 16 - lines.length * lh;
 
     this.ctx.fillStyle = 'rgba(10,10,30,0.6)';
-    this.roundRect(bx - 8, by - 8, 170, lines.length * lh + 16, 8);
+    this.roundRect(bx - 8, by - 8, 190, lines.length * lh + 16, 8);
     this.ctx.fill();
 
     this.ctx.font = '11px sans-serif';
