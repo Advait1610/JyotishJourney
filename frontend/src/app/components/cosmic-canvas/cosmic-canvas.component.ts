@@ -50,12 +50,10 @@ const MAX_TILT = 0.95;  // nearly edge-on
   selector: 'app-cosmic-canvas',
   standalone: true,
   template: `<canvas #cosmicCanvas class="cosmic-canvas"></canvas>`,
+  host: { 'style': 'pointer-events: none' },
   styles: [`
-    :host { display: block; position: absolute; inset: 0; z-index: 0; }
-    .cosmic-canvas { width: 100%; height: 100%; display: block; }
-    @media (pointer: coarse) {
-      :host, .cosmic-canvas { pointer-events: none !important; touch-action: auto !important; }
-    }
+    :host { display: block; position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+    .cosmic-canvas { width: 100%; height: 100%; display: block; pointer-events: none; }
   `]
 })
 export class CosmicCanvasComponent implements AfterViewInit, OnDestroy {
@@ -119,7 +117,9 @@ export class CosmicCanvasComponent implements AfterViewInit, OnDestroy {
     this.isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
     if (!this.isTouchDevice) {
-      this.on(canvas, 'mousemove', (e: Event) => {
+      const hero = canvas.closest('.hero') || canvas.parentElement!;
+
+      this.on(hero, 'mousemove', (e: Event) => {
         const me = e as MouseEvent;
         const rect = canvas.getBoundingClientRect();
         this.mouseX = ((me.clientX - rect.left) / rect.width - 0.5) * 2;
@@ -133,13 +133,13 @@ export class CosmicCanvasComponent implements AfterViewInit, OnDestroy {
         }
       });
 
-      this.on(canvas, 'mouseleave', () => {
+      this.on(hero, 'mouseleave', () => {
         this.mouseX = 0; this.mouseY = 0;
         this.isDragging = false;
-        canvas.style.cursor = 'crosshair';
+        (hero as HTMLElement).style.cursor = '';
       });
 
-      this.on(canvas, 'mousedown', (e: Event) => {
+      this.on(hero, 'mousedown', (e: Event) => {
         const me = e as MouseEvent;
         if (me.button !== 0) return;
         this.isDragging = true;
@@ -147,18 +147,18 @@ export class CosmicCanvasComponent implements AfterViewInit, OnDestroy {
         this.dragStartY = me.clientY;
         this.dragStartTilt = this.tilt;
         this.dragStartRotation = this.camRotation;
-        canvas.style.cursor = 'grabbing';
+        (hero as HTMLElement).style.cursor = 'grabbing';
         this.fadeHint();
       });
 
       this.on(window, 'mouseup', () => {
         if (this.isDragging) {
           this.isDragging = false;
-          canvas.style.cursor = 'crosshair';
+          (hero as HTMLElement).style.cursor = '';
         }
       });
 
-      this.on(canvas, 'dblclick', () => {
+      this.on(hero, 'dblclick', () => {
         this.zoom = 1; this.tilt = 0.28; this.camRotation = 0;
       });
     }
