@@ -10,9 +10,10 @@ import { Blog } from '../../models/blog.model';
   template: `
     <a [routerLink]="['/blog', blog.id]" class="card blog-card">
       <div class="card-image">
-        @if (blog.coverImageUrl) {
-          <img [src]="blog.coverImageUrl" [alt]="blog.title" loading="lazy"/>
-        } @else {
+        @if (blog.coverImageUrl && !imgError) {
+          <img [src]="blog.coverImageUrl" alt="" loading="lazy" (error)="imgError = true"/>
+        }
+        @if (!blog.coverImageUrl || imgError) {
           <div class="placeholder-image">
             <svg class="zodiac-placeholder" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 2a5.5 5.5 0 0 0 0 11 5.5 5.5 0 0 1 0 11"/><path d="M12 2a5.5 5.5 0 0 1 0 11 5.5 5.5 0 0 0 0 11"/></svg>
           </div>
@@ -53,24 +54,38 @@ import { Blog } from '../../models/blog.model';
       display: flex;
       flex-direction: column;
       height: 100%;
+      min-height: 380px;
       text-decoration: none;
       cursor: pointer;
       backdrop-filter: blur(6px);
       border-radius: 12px;
       overflow: hidden;
+      background: var(--jj-bg-card);
+      border: 1px solid var(--jj-border);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+      &:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+      }
     }
 
     .card-image {
       position: relative;
-      height: 200px;
+      height: 180px;
       flex-shrink: 0;
       overflow: hidden;
 
       img {
+        position: absolute;
+        top: 0;
+        left: 0;
         width: 100%;
         height: 100%;
         object-fit: cover;
         transition: transform 0.5s ease;
+        font-size: 0;
+        color: transparent;
       }
 
       .placeholder-image {
@@ -117,7 +132,7 @@ import { Blog } from '../../models/blog.model';
 
     .card-title {
       font-family: 'Lora', serif;
-      font-size: 1.15rem;
+      font-size: 1.1rem;
       color: var(--jj-text-bright);
       margin-bottom: 12px;
       line-height: 1.4;
@@ -125,7 +140,7 @@ import { Blog } from '../../models/blog.model';
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
-      flex: 1;
+      min-height: 3.08em;
     }
 
     .card-meta {
@@ -187,4 +202,5 @@ import { Blog } from '../../models/blog.model';
 })
 export class BlogCardComponent {
   @Input() blog!: Blog;
+  imgError = false;
 }

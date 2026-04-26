@@ -165,16 +165,17 @@ import { Blog } from '../../models/blog.model';
       scroll-behavior: smooth;
       padding: 10px 0 20px;
       scrollbar-width: none;
-      align-items: stretch;
 
       &::-webkit-scrollbar { display: none; }
     }
 
     .slider-card {
-      width: 320px;
-      min-width: 320px;
+      width: 300px;
+      min-width: 300px;
       flex-shrink: 0;
       display: flex;
+
+      app-blog-card { width: 100%; }
     }
 
     .slider-arrow {
@@ -248,7 +249,7 @@ import { Blog } from '../../models/blog.model';
       .hero-title { font-size: 2.8rem; letter-spacing: 0.02em; }
       .hero-subtitle { font-size: 1rem; max-width: 400px; }
       .blog-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
-      .slider-card { width: 280px; min-width: 280px; }
+      .slider-card { width: 270px; min-width: 270px; }
       .section { padding: 30px 0; }
       .section-title { font-size: 1.3rem; margin-bottom: 20px; }
       .slider-arrow { width: 34px; height: 34px; font-size: 1rem; }
