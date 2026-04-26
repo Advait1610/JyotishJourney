@@ -25,6 +25,9 @@ frontend/.angular/
 **/*.mv.db
 **/*.trace.db
 
+# SQL backups
+*_backup.sql
+
 # OS
 .DS_Store
 Thumbs.db

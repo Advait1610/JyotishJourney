@@ -150,56 +150,9 @@ export class CosmicCanvasComponent implements AfterViewInit, OnDestroy {
       }
     });
 
-    this.on(canvas, 'wheel', (e: Event) => {
-      const we = e as WheelEvent;
-      we.preventDefault();
-      const delta = -we.deltaY * 0.001;
-      this.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, this.zoom + delta));
-      this.fadeHint();
-    }, { passive: false });
-
     this.on(canvas, 'dblclick', () => {
       this.zoom = 1; this.tilt = 0.28; this.camRotation = 0;
     });
-
-    // Touch support
-    let touchDist = 0;
-    this.on(canvas, 'touchstart', (e: Event) => {
-      const te = e as TouchEvent;
-      if (te.touches.length === 1) {
-        this.isDragging = true;
-        this.dragStartX = te.touches[0].clientX;
-        this.dragStartY = te.touches[0].clientY;
-        this.dragStartTilt = this.tilt;
-        this.dragStartRotation = this.camRotation;
-        this.fadeHint();
-      } else if (te.touches.length === 2) {
-        this.isDragging = false;
-        touchDist = Math.hypot(
-          te.touches[1].clientX - te.touches[0].clientX,
-          te.touches[1].clientY - te.touches[0].clientY
-        );
-      }
-    });
-
-    this.on(canvas, 'touchmove', (e: Event) => {
-      const te = e as TouchEvent;
-      te.preventDefault();
-      if (te.touches.length === 1 && this.isDragging) {
-        const dx = te.touches[0].clientX - this.dragStartX;
-        const dy = te.touches[0].clientY - this.dragStartY;
-        this.camRotation = this.dragStartRotation + dx * 0.005;
-        this.tilt = Math.max(MIN_TILT, Math.min(MAX_TILT, this.dragStartTilt - dy * 0.002));
-      } else if (te.touches.length === 2) {
-        const newDist = Math.hypot(
-          te.touches[1].clientX - te.touches[0].clientX,
-          te.touches[1].clientY - te.touches[0].clientY
-        );
-        const scale = newDist / touchDist;
-        this.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, this.zoom * scale));
-        touchDist = newDist;
-      }
-    }, { passive: false });
 
     this.on(canvas, 'touchend', () => { this.isDragging = false; });
 
@@ -705,7 +658,7 @@ export class CosmicCanvasComponent implements AfterViewInit, OnDestroy {
     this.ctx.save();
     this.ctx.globalAlpha = a * 0.7;
 
-    const lines = ['Scroll to zoom', 'Drag to rotate view', 'Double-click to reset'];
+    const lines = ['Drag to rotate view', 'Double-click to reset'];
     const lh = 18;
     const bx = 16, by = this.h - 16 - lines.length * lh;
 
