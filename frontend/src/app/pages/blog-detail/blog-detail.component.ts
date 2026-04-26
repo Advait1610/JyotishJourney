@@ -26,6 +26,42 @@ import { Blog, Comment } from '../../models/blog.model';
               Click to view full image
             </span>
           </div>
+        } @else {
+          <div class="cover-image default-cover">
+            <svg viewBox="0 0 1200 400" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
+              <defs>
+                <radialGradient id="dn1" cx="25%" cy="35%"><stop offset="0%" stop-color="rgba(106,13,173,0.5)"/><stop offset="100%" stop-color="transparent"/></radialGradient>
+                <radialGradient id="dn2" cx="75%" cy="65%"><stop offset="0%" stop-color="rgba(243,156,18,0.2)"/><stop offset="100%" stop-color="transparent"/></radialGradient>
+                <radialGradient id="dn3" cx="55%" cy="30%"><stop offset="0%" stop-color="rgba(40,60,150,0.3)"/><stop offset="100%" stop-color="transparent"/></radialGradient>
+                <radialGradient id="dsg" cx="50%" cy="50%"><stop offset="0%" stop-color="#ffe680"/><stop offset="40%" stop-color="#f5a623"/><stop offset="100%" stop-color="#e8751a"/></radialGradient>
+              </defs>
+              <rect width="1200" height="400" fill="#0a0a1a"/>
+              <rect width="1200" height="400" fill="url(#dn1)"/>
+              <rect width="1200" height="400" fill="url(#dn2)"/>
+              <rect width="1200" height="400" fill="url(#dn3)"/>
+              <circle cx="120" cy="50" r="1" fill="rgba(255,255,255,0.6)"/>
+              <circle cx="250" cy="100" r="1.5" fill="rgba(255,255,255,0.4)"/>
+              <circle cx="400" cy="30" r="0.8" fill="rgba(255,255,255,0.7)"/>
+              <circle cx="550" cy="80" r="1.2" fill="rgba(255,255,255,0.5)"/>
+              <circle cx="700" cy="40" r="0.9" fill="rgba(255,255,255,0.6)"/>
+              <circle cx="850" cy="90" r="1.4" fill="rgba(255,255,255,0.3)"/>
+              <circle cx="950" cy="55" r="1" fill="rgba(255,255,255,0.5)"/>
+              <circle cx="1100" cy="70" r="0.7" fill="rgba(255,255,255,0.6)"/>
+              <circle cx="180" cy="280" r="1.1" fill="rgba(255,255,255,0.4)"/>
+              <circle cx="480" cy="320" r="0.8" fill="rgba(255,255,255,0.5)"/>
+              <circle cx="780" cy="300" r="1.3" fill="rgba(255,255,255,0.3)"/>
+              <circle cx="1050" cy="340" r="0.9" fill="rgba(255,255,255,0.5)"/>
+              <circle cx="600" cy="200" r="22" fill="url(#dsg)" opacity="0.9"/>
+              <ellipse cx="600" cy="200" rx="80" ry="28" fill="none" stroke="rgba(155,89,182,0.15)" stroke-width="0.8"/>
+              <ellipse cx="600" cy="200" rx="140" ry="50" fill="none" stroke="rgba(155,89,182,0.1)" stroke-width="0.6"/>
+              <ellipse cx="600" cy="200" rx="210" ry="75" fill="none" stroke="rgba(155,89,182,0.07)" stroke-width="0.5"/>
+              <circle cx="665" cy="180" r="6" fill="#4fa3d1" opacity="0.8"/>
+              <circle cx="510" cy="225" r="4.5" fill="#c1440e" opacity="0.7"/>
+              <circle cx="740" cy="210" r="9" fill="#d4c07a" opacity="0.6"/>
+              <circle cx="430" cy="195" r="3" fill="#72b5c4" opacity="0.7"/>
+            </svg>
+            <div class="cover-overlay"></div>
+          </div>
         }
 
         @if (lightboxOpen && lightboxSrc) {
@@ -167,6 +203,11 @@ import { Blog, Comment } from '../../models/blog.model';
       }
 
       &:hover img { transform: scale(1.02); }
+
+      &.default-cover {
+        cursor: default;
+        svg { display: block; width: 100%; height: 100%; }
+      }
 
       .cover-overlay {
         position: absolute;

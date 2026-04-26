@@ -15,7 +15,34 @@ import { Blog } from '../../models/blog.model';
         }
         @if (!blog.coverImageUrl || imgError) {
           <div class="placeholder-image">
-            <svg class="zodiac-placeholder" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 2a5.5 5.5 0 0 0 0 11 5.5 5.5 0 0 1 0 11"/><path d="M12 2a5.5 5.5 0 0 1 0 11 5.5 5.5 0 0 0 0 11"/></svg>
+            <svg viewBox="0 0 400 200" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
+              <defs>
+                <radialGradient id="nebula1" cx="30%" cy="40%"><stop offset="0%" stop-color="rgba(106,13,173,0.4)"/><stop offset="100%" stop-color="transparent"/></radialGradient>
+                <radialGradient id="nebula2" cx="75%" cy="60%"><stop offset="0%" stop-color="rgba(243,156,18,0.2)"/><stop offset="100%" stop-color="transparent"/></radialGradient>
+                <radialGradient id="sunGlow" cx="50%" cy="50%"><stop offset="0%" stop-color="#ffe680"/><stop offset="40%" stop-color="#f5a623"/><stop offset="100%" stop-color="#e8751a"/></radialGradient>
+              </defs>
+              <rect width="400" height="200" fill="#0a0a1a"/>
+              <rect width="400" height="200" fill="url(#nebula1)"/>
+              <rect width="400" height="200" fill="url(#nebula2)"/>
+              <circle cx="80" cy="30" r="0.8" fill="rgba(255,255,255,0.6)"/>
+              <circle cx="150" cy="55" r="1" fill="rgba(255,255,255,0.5)"/>
+              <circle cx="220" cy="20" r="0.6" fill="rgba(255,255,255,0.7)"/>
+              <circle cx="300" cy="45" r="1.2" fill="rgba(255,255,255,0.4)"/>
+              <circle cx="350" cy="80" r="0.7" fill="rgba(255,255,255,0.6)"/>
+              <circle cx="60" cy="120" r="0.9" fill="rgba(255,255,255,0.5)"/>
+              <circle cx="180" cy="160" r="0.8" fill="rgba(255,255,255,0.4)"/>
+              <circle cx="330" cy="150" r="1" fill="rgba(255,255,255,0.5)"/>
+              <circle cx="120" cy="85" r="0.6" fill="rgba(255,255,255,0.7)"/>
+              <circle cx="260" cy="130" r="0.9" fill="rgba(255,255,255,0.3)"/>
+              <circle cx="200" cy="100" r="14" fill="url(#sunGlow)" opacity="0.9"/>
+              <circle cx="200" cy="100" r="24" fill="none" stroke="rgba(243,156,18,0.12)" stroke-width="0.5"/>
+              <ellipse cx="200" cy="100" rx="55" ry="20" fill="none" stroke="rgba(155,89,182,0.15)" stroke-width="0.5"/>
+              <ellipse cx="200" cy="100" rx="85" ry="32" fill="none" stroke="rgba(155,89,182,0.1)" stroke-width="0.5"/>
+              <circle cx="245" cy="88" r="4" fill="#4fa3d1" opacity="0.8"/>
+              <circle cx="145" cy="112" r="3" fill="#c1440e" opacity="0.7"/>
+              <circle cx="280" cy="108" r="6" fill="#d4c07a" opacity="0.6"/>
+              <text x="200" y="105" text-anchor="middle" font-family="Cinzel,serif" font-size="10" fill="rgba(155,89,182,0.25)">&#x2729;</text>
+            </svg>
           </div>
         }
         <div class="card-overlay"></div>
@@ -91,15 +118,12 @@ import { Blog } from '../../models/blog.model';
       .placeholder-image {
         width: 100%;
         height: 100%;
-        background: linear-gradient(135deg, var(--jj-primary-dark), var(--jj-bg-surface));
         display: flex;
         align-items: center;
         justify-content: center;
-      }
+        overflow: hidden;
 
-      .zodiac-placeholder {
-        font-size: 3rem;
-        opacity: 0.3;
+        svg { display: block; width: 100%; height: 100%; }
       }
 
       .card-overlay {
