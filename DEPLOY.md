@@ -1,301 +1,315 @@
-# Deploying Jyotish Journey on Render (Free Tier)
+# Deploying Jyotish Journey on AWS EC2 Free Tier
 
-## What you get for FREE
+## What you get FREE for 12 months
 
-| Resource | Limit | Notes |
-|----------|-------|-------|
-| Web Services | 750 hrs/month (per service) | Services sleep after 15 min inactivity, auto-wake on request |
-| Static Sites | Unlimited | Always on, no sleeping |
-| PostgreSQL | 256 MB per database | Free for 90 days, then need to recreate |
-| Redis | 25 MB | Free tier |
+| Resource | Specs |
+|----------|-------|
+| EC2 t2.micro | 1 vCPU, 1 GB RAM, 750 hrs/month |
+| EBS Storage | 30 GB SSD |
+| Data Transfer | 15 GB/month outbound |
 
-**Total cost: $0/month**
+**Total cost: $0/month** (for 12 months)
 
-> Services go to sleep after 15 min of inactivity. First request after sleep takes ~30-50 seconds (cold start), then everything is fast. You can prevent sleeping with a free monitoring tool like [UptimeRobot](https://uptimerobot.com/).
+We use a 2 GB swap file + memory-tuned Docker containers to fit everything in 1 GB RAM.
 
 ---
 
-## Architecture on Render
+## Architecture
 
 ```
-Render Cloud (Free Tier)
-├── Static Site: jj-frontend (Angular, always on)
-├── Web Service: jj-discovery (Eureka, Docker)
-├── Web Service: jj-gateway (API Gateway, Docker)
-├── Web Service: jj-user-service (User Service, Docker)
-├── Web Service: jj-blog-service (Blog Service, Docker)
-├── PostgreSQL: jj-user-db (256 MB)
-├── PostgreSQL: jj-blog-db (256 MB)
-└── Redis: jj-redis (25 MB)
+AWS EC2 t2.micro (1 GB RAM + 2 GB swap)
+├── Docker Compose
+│   ├── frontend (nginx:80) ---- serves Angular + proxies /api
+│   ├── api-gateway (:8080) ---- JWT auth, rate limiting, routing
+│   ├── discovery-server (:8761) ---- Eureka service registry
+│   ├── user-service (:8081) ---- user auth, Google OAuth
+│   ├── blog-service (:8082) ---- blogs, comments, likes, notifications
+│   ├── postgres (:5432) -------- user_db + blog_db
+│   └── redis (:6379) ----------- caching + rate limiting
 ```
 
 ---
 
-## Prerequisites
+## Step 1: Create AWS Account
 
-1. A [GitHub](https://github.com) account
-2. Push this project to a GitHub repository
+1. Go to [aws.amazon.com](https://aws.amazon.com) and click **Create an AWS Account**
+2. Fill in email, password, account name
+3. Add payment method (Indian Visa/MC/Rupay debit/credit card accepted)
+4. Choose **Basic Support** (free)
+5. Wait for account activation
 
 ---
 
-## Step 1: Push to GitHub
+## Step 2: Launch EC2 Instance
+
+1. Go to **AWS Console** > **EC2** > **Launch Instance**
+2. Configure:
+   - **Name**: `jyotish-journey`
+   - **AMI**: Amazon Linux 2023 (free tier eligible)
+   - **Instance type**: `t2.micro` (free tier eligible)
+   - **Key pair**: Click **Create new key pair**
+     - Name: `jj-key`
+     - Type: RSA
+     - Format: `.pem`
+     - Download and save the file
+   - **Network settings**: Click **Edit**
+     - Auto-assign public IP: **Enable**
+     - Create security group: **Yes**
+     - Security group name: `jj-security-group`
+     - Add rules:
+       - Type: SSH, Port: 22, Source: My IP
+       - Type: HTTP, Port: 80, Source: 0.0.0.0/0
+       - Type: HTTPS, Port: 443, Source: 0.0.0.0/0
+   - **Storage**: 30 GB gp3 (max free tier)
+3. Click **Launch Instance**
+4. Wait until **Instance State** shows **Running**
+5. Note the **Public IPv4 address**
+
+---
+
+## Step 3: SSH into your instance
 
 ```bash
-cd d:\projects\jyotish-journey
+# Linux/Mac
+chmod 400 ~/Downloads/jj-key.pem
+ssh -i ~/Downloads/jj-key.pem ec2-user@YOUR_PUBLIC_IP
 
-git init
-git add .
-git commit -m "Initial commit - ready for Render deployment"
-git remote add origin https://github.com/YOUR_USERNAME/jyotish-journey.git
-git branch -M main
-git push -u origin main
+# Windows (PowerShell)
+ssh -i C:\Users\YourName\Downloads\jj-key.pem ec2-user@YOUR_PUBLIC_IP
 ```
 
 ---
 
-## Step 2: Create Render Account
+## Step 4: Create Swap File (IMPORTANT)
 
-1. Go to [render.com](https://render.com) and click **Get Started for Free**
-2. Sign up with your **GitHub account** (easiest)
-3. No credit card required
+This gives your 1 GB machine an extra 2 GB of virtual memory:
 
----
+```bash
+sudo dd if=/dev/zero of=/swapfile bs=128M count=16
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
 
-## Step 3: Create Databases
+# Make it permanent (survives reboot)
+echo '/swapfile swap swap defaults 0 0' | sudo tee -a /etc/fstab
 
-### PostgreSQL - User DB
-
-1. Go to **Dashboard > New > PostgreSQL**
-2. Configure:
-   - **Name**: `jj-user-db`
-   - **Database**: `user_db`
-   - **User**: `postgres`
-   - **Region**: Oregon (or closest to you)
-   - **Plan**: Free
-3. Click **Create Database**
-4. Once created, copy the **Internal Database URL** (looks like `postgres://postgres:xxxxx@dpg-xxxxx/user_db`)
-
-### PostgreSQL - Blog DB
-
-Repeat the same steps:
-- **Name**: `jj-blog-db`
-- **Database**: `blog_db`
-- **User**: `postgres`
-- Copy the **Internal Database URL**
-
-### Redis
-
-1. Go to **Dashboard > New > Redis**
-2. Configure:
-   - **Name**: `jj-redis`
-   - **Region**: Same as databases
-   - **Plan**: Free
-3. Copy the **Internal Redis URL** (looks like `redis://red-xxxxx:6379`)
+# Verify: should show ~2 GB swap
+free -h
+```
 
 ---
 
-## Step 4: Deploy Services (in order)
+## Step 5: Install Docker
 
-### 4.1 Discovery Server (deploy first)
+```bash
+# Update system
+sudo yum update -y
 
-1. Go to **Dashboard > New > Web Service**
-2. Connect your GitHub repo
-3. Configure:
-   - **Name**: `jj-discovery`
-   - **Region**: Same as DBs
-   - **Runtime**: Docker
-   - **Dockerfile Path**: `./discovery-server/Dockerfile`
-   - **Docker Context**: `./discovery-server`
-   - **Plan**: Free
-4. Add environment variable:
-   - `EUREKA_HOSTNAME` = `jj-discovery`
-5. Click **Create Web Service**
-6. Wait for it to deploy. Note the URL (e.g., `https://jj-discovery.onrender.com`)
+# Install Docker
+sudo yum install -y docker
+sudo systemctl start docker
+sudo systemctl enable docker
+sudo usermod -aG docker ec2-user
 
-### 4.2 User Service
+# Install Docker Compose
+sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
 
-1. **New > Web Service** > connect same repo
-2. Configure:
-   - **Name**: `jj-user-service`
-   - **Runtime**: Docker
-   - **Dockerfile Path**: `./user-service/Dockerfile`
-   - **Docker Context**: `./user-service`
-   - **Plan**: Free
-3. Add environment variables:
+# Install Git
+sudo yum install -y git
 
-   | Key | Value |
-   |-----|-------|
-   | `SPRING_DATASOURCE_URL` | Your jj-user-db **Internal Database URL** |
-   | `SPRING_DATASOURCE_USERNAME` | `postgres` |
-   | `SPRING_DATASOURCE_PASSWORD` | (password from the DB URL) |
-   | `SPRING_REDIS_HOST` | (hostname from Redis Internal URL, e.g., `red-xxxxx`) |
-   | `SPRING_REDIS_PORT` | `6379` |
-   | `EUREKA_CLIENT_SERVICEURL_DEFAULTZONE` | `https://jj-discovery.onrender.com/eureka/` |
-   | `JWT_SECRET` | `JyotishJourneySecretKeyForJWTTokenGeneration2024MustBe256BitsLong!` |
-   | `GOOGLE_CLIENT_ID` | Your Google OAuth client ID |
-   | `GOOGLE_CLIENT_SECRET` | Your Google OAuth client secret |
-   | `GOOGLE_REDIRECT_URI` | `https://jj-gateway.onrender.com/api/users/oauth2/callback` |
-   | `APP_FRONTEND_URL` | `https://jj-frontend.onrender.com` (will set after creating frontend) |
+# Log out and back in for docker group to take effect
+exit
+```
 
-4. Click **Create Web Service**
+SSH back in, then verify:
 
-### 4.3 Blog Service
-
-1. **New > Web Service** > connect same repo
-2. Configure:
-   - **Name**: `jj-blog-service`
-   - **Runtime**: Docker
-   - **Dockerfile Path**: `./blog-service/Dockerfile`
-   - **Docker Context**: `./blog-service`
-   - **Plan**: Free
-3. Add environment variables:
-
-   | Key | Value |
-   |-----|-------|
-   | `SPRING_DATASOURCE_URL` | Your jj-blog-db **Internal Database URL** |
-   | `SPRING_DATASOURCE_USERNAME` | `postgres` |
-   | `SPRING_DATASOURCE_PASSWORD` | (password from the DB URL) |
-   | `SPRING_REDIS_HOST` | (same Redis hostname as above) |
-   | `SPRING_REDIS_PORT` | `6379` |
-   | `EUREKA_CLIENT_SERVICEURL_DEFAULTZONE` | `https://jj-discovery.onrender.com/eureka/` |
-
-4. Click **Create Web Service**
-
-### 4.4 API Gateway
-
-1. **New > Web Service** > connect same repo
-2. Configure:
-   - **Name**: `jj-gateway`
-   - **Runtime**: Docker
-   - **Dockerfile Path**: `./api-gateway/Dockerfile`
-   - **Docker Context**: `./api-gateway`
-   - **Plan**: Free
-3. Add environment variables:
-
-   | Key | Value |
-   |-----|-------|
-   | `SPRING_REDIS_HOST` | (same Redis hostname) |
-   | `SPRING_REDIS_PORT` | `6379` |
-   | `EUREKA_CLIENT_SERVICEURL_DEFAULTZONE` | `https://jj-discovery.onrender.com/eureka/` |
-   | `JWT_SECRET` | `JyotishJourneySecretKeyForJWTTokenGeneration2024MustBe256BitsLong!` |
-   | `CORS_ALLOWED_ORIGINS` | `https://jj-frontend.onrender.com` |
-
-4. Click **Create Web Service**
-
-### 4.5 Frontend (Static Site)
-
-1. **New > Static Site**
-2. Connect your GitHub repo
-3. Configure:
-   - **Name**: `jj-frontend`
-   - **Root Directory**: `frontend`
-   - **Build Command**: `chmod +x render-build.sh && ./render-build.sh`
-   - **Publish Directory**: `dist/jyotish-journey/browser`
-4. Add environment variables:
-
-   | Key | Value |
-   |-----|-------|
-   | `RENDER_API_URL` | `https://jj-gateway.onrender.com/api` |
-   | `RENDER_GATEWAY_URL` | `https://jj-gateway.onrender.com` |
-
-5. Click **Create Static Site**
+```bash
+docker --version
+docker-compose --version
+```
 
 ---
 
-## Step 5: Update Google OAuth Settings
+## Step 6: Clone your project
+
+```bash
+git clone https://github.com/Advait1610/JyotishJourney.git
+cd JyotishJourney
+```
+
+---
+
+## Step 7: Configure Environment Variables
+
+```bash
+cp .env.example .env
+nano .env
+```
+
+Fill in your real values:
+
+```
+DB_USER=postgres
+DB_PASSWORD=a_strong_password_here
+JWT_SECRET=JyotishJourneySecretKeyForJWTTokenGeneration2024MustBe256BitsLong!
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_REDIRECT_URI=http://YOUR_PUBLIC_IP/api/users/oauth2/callback
+APP_FRONTEND_URL=http://YOUR_PUBLIC_IP
+CORS_ALLOWED_ORIGINS=http://YOUR_PUBLIC_IP
+```
+
+Replace `YOUR_PUBLIC_IP` with your EC2 instance's public IP.
+
+Save: `Ctrl+O`, Enter, `Ctrl+X`
+
+---
+
+## Step 8: Update Google OAuth Settings
 
 Go to [Google Cloud Console > Credentials](https://console.cloud.google.com/apis/credentials):
 
 1. Edit your OAuth 2.0 Client ID
 2. Add to **Authorized JavaScript origins**:
-   - `https://jj-frontend.onrender.com`
-   - `https://jj-gateway.onrender.com`
+   - `http://YOUR_PUBLIC_IP`
 3. Add to **Authorized redirect URIs**:
-   - `https://jj-gateway.onrender.com/api/users/oauth2/callback`
+   - `http://YOUR_PUBLIC_IP/api/users/oauth2/callback`
 4. Save
 
 ---
 
-## Step 6: Verify
-
-1. Open `https://jj-frontend.onrender.com` in your browser
-2. The first load may take 30-50 seconds (services waking up)
-3. After that, everything should be fast
-
----
-
-## Keeping Services Awake (Optional)
-
-If you want to avoid cold starts, use [UptimeRobot](https://uptimerobot.com/) (free):
-
-1. Create an account at uptimerobot.com
-2. Add 4 HTTP monitors:
-
-   | URL | Interval |
-   |-----|----------|
-   | `https://jj-discovery.onrender.com` | 14 minutes |
-   | `https://jj-gateway.onrender.com` | 14 minutes |
-   | `https://jj-user-service.onrender.com` | 14 minutes |
-   | `https://jj-blog-service.onrender.com` | 14 minutes |
-
-This pings each service before it sleeps (at 15 min), keeping them alive 24/7.
-
----
-
-## Updating Your App
-
-After making code changes locally:
+## Step 9: Build and Start
 
 ```bash
-git add .
-git commit -m "Your changes"
-git push origin main
+cd ~/JyotishJourney
+
+# Make init script executable
+chmod +x init-db.sh
+
+# Build and start (first time takes 15-20 minutes on t2.micro)
+docker-compose up -d --build
+
+# Watch logs
+docker-compose logs -f
 ```
 
-Render will **automatically redeploy** all services connected to the repo.
+Wait until you see all services registered with Eureka. This takes a few minutes since services start sequentially.
+
+Check status:
+
+```bash
+# All containers should be running
+docker-compose ps
+
+# Check memory usage
+free -h
+docker stats --no-stream
+```
+
+---
+
+## Step 10: Visit Your App
+
+Open your browser:
+
+```
+http://YOUR_PUBLIC_IP
+```
+
+Your app is live!
+
+---
+
+## Useful Commands
+
+```bash
+# Stop all services
+docker-compose down
+
+# Restart everything
+docker-compose restart
+
+# Restart a specific service
+docker-compose restart blog-service
+
+# View logs (last 100 lines)
+docker-compose logs --tail=100 blog-service
+
+# Rebuild after code changes
+cd ~/JyotishJourney
+git pull origin main
+docker-compose up -d --build
+
+# Check memory usage
+free -h
+docker stats --no-stream
+
+# Clear everything and start fresh (WARNING: deletes all data)
+docker-compose down -v
+docker system prune -af
+docker-compose up -d --build
+```
 
 ---
 
 ## Troubleshooting
 
-### Service won't start?
+### Out of memory / services crashing?
 
-1. Go to the service on Render Dashboard
-2. Click **Logs** tab
-3. Look for error messages
+```bash
+# Check swap is active
+free -h
 
-### Database connection error?
+# Check which container uses most memory
+docker stats --no-stream
 
-- Double check `SPRING_DATASOURCE_URL` -- it should be the **Internal Database URL**, not the External one
-- Make sure the database and the service are in the **same region**
+# If a service keeps restarting, check its logs
+docker-compose logs user-service
+```
 
-### CORS errors in browser?
+### Can't connect to the app?
 
-- Verify `CORS_ALLOWED_ORIGINS` on jj-gateway matches your frontend URL exactly (including `https://`)
+1. Check EC2 Security Group allows port 80 inbound
+2. Check all containers are running: `docker-compose ps`
+3. Check the frontend can reach the gateway: `docker-compose logs frontend`
 
-### Google OAuth not working?
+### Build is too slow?
 
-- Make sure `GOOGLE_REDIRECT_URI` is `https://jj-gateway.onrender.com/api/users/oauth2/callback`
-- Make sure `APP_FRONTEND_URL` is `https://jj-frontend.onrender.com`
-- Both URLs must be registered in Google Cloud Console
+t2.micro has limited CPU. First build takes 15-20 min. Subsequent builds are faster due to Docker layer caching.
 
-### Free Postgres expiring after 90 days?
+### Want to use a custom domain?
 
-Render's free PostgreSQL databases expire after 90 days. When this happens:
-1. Create a new free database
-2. Update the `SPRING_DATASOURCE_URL` environment variable on the affected service
-3. The service will auto-redeploy with the new database
-4. Note: **data will be lost** -- export before expiry if needed
+1. Buy a domain (or use free subdomain from DuckDNS)
+2. Point the A record to your EC2 public IP
+3. Update `.env` with your domain in `GOOGLE_REDIRECT_URI`, `APP_FRONTEND_URL`, `CORS_ALLOWED_ORIGINS`
+4. Restart: `docker-compose restart`
 
 ---
 
-## Cost Summary
+## Stopping the Instance (to save free tier hours)
 
-| Item | Cost |
-|------|------|
-| 4 Web Services (free plan) | $0 |
-| 1 Static Site | $0 |
-| 2 PostgreSQL (free plan) | $0 |
-| 1 Redis (free plan) | $0 |
-| UptimeRobot (optional) | $0 |
-| **Total** | **$0/month** |
+You get 750 hours/month free. That's exactly 31 days, so one instance running 24/7 fits perfectly. But if you want to stop it:
+
+```bash
+# From AWS Console: EC2 > Instances > Select > Instance State > Stop
+# Your data persists. Start it again anytime.
+# Note: Public IP changes when you restart (use Elastic IP to keep it fixed -- 1 free if attached to running instance)
+```
+
+---
+
+## Memory Budget
+
+| Service | Memory Limit |
+|---------|-------------|
+| PostgreSQL | 128 MB |
+| Redis | 48 MB |
+| Discovery Server | 200 MB |
+| User Service | 220 MB |
+| Blog Service | 220 MB |
+| API Gateway | 200 MB |
+| Frontend (Nginx) | 32 MB |
+| **Total** | **~1048 MB** |
+| OS + Docker overhead | ~200 MB |
+| **Swap handles overflow** | **2048 MB available** |

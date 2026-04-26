@@ -9,4 +9,4 @@ WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 RUN mkdir -p /app/uploads
 EXPOSE 8082
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-Xmx300m", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-Xmx150m", "-Xms64m", "-XX:+UseSerialGC", "-jar", "app.jar"]

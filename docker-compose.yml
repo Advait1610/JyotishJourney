@@ -1,48 +1,25 @@
 services:
-  postgres-user-db:
+  postgres:
     image: postgres:16-alpine
-    container_name: jj-user-db
+    container_name: jj-postgres
     environment:
-      POSTGRES_DB: user_db
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
     volumes:
-      - user-db-data:/var/lib/postgresql/data
+      - pg-data:/var/lib/postgresql/data
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-    restart: unless-stopped
-
-  postgres-blog-db:
-    image: postgres:16-alpine
-    container_name: jj-blog-db
-    environment:
-      POSTGRES_DB: blog_db
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-    volumes:
-      - blog-db-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          memory: 256M
+    mem_limit: 128m
     restart: unless-stopped
 
   redis:
     image: redis:7-alpine
     container_name: jj-redis
-    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    command: redis-server --maxmemory 32mb --maxmemory-policy allkeys-lru --save ""
     volumes:
       - redis-data:/data
     healthcheck:
@@ -50,10 +27,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    deploy:
-      resources:
-        limits:
-          memory: 192M
+    mem_limit: 48m
     restart: unless-stopped
 
   discovery-server:
@@ -63,21 +37,18 @@ services:
       EUREKA_HOSTNAME: discovery-server
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:8761"]
-      interval: 15s
+      interval: 20s
       timeout: 10s
       retries: 5
-      start_period: 40s
-    deploy:
-      resources:
-        limits:
-          memory: 512M
+      start_period: 60s
+    mem_limit: 200m
     restart: unless-stopped
 
   user-service:
     build: ./user-service
     container_name: jj-user-service
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-user-db:5432/user_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/user_db
       SPRING_DATASOURCE_USERNAME: ${DB_USER:-postgres}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-postgres}
       SPRING_REDIS_HOST: redis
@@ -88,23 +59,20 @@ services:
       GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost/api/users/oauth2/callback}
       APP_FRONTEND_URL: ${APP_FRONTEND_URL:-http://localhost}
     depends_on:
-      postgres-user-db:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
       discovery-server:
         condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          memory: 768M
+    mem_limit: 220m
     restart: unless-stopped
 
   blog-service:
     build: ./blog-service
     container_name: jj-blog-service
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-blog-db:5432/blog_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/blog_db
       SPRING_DATASOURCE_USERNAME: ${DB_USER:-postgres}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-postgres}
       SPRING_REDIS_HOST: redis
@@ -112,16 +80,13 @@ services:
     volumes:
       - blog-uploads:/app/uploads
     depends_on:
-      postgres-blog-db:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
       discovery-server:
         condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          memory: 768M
+    mem_limit: 220m
     restart: unless-stopped
 
   api-gateway:
@@ -141,10 +106,7 @@ services:
         condition: service_started
       blog-service:
         condition: service_started
-    deploy:
-      resources:
-        limits:
-          memory: 512M
+    mem_limit: 200m
     restart: unless-stopped
 
   frontend:
@@ -154,14 +116,10 @@ services:
       - "80:80"
     depends_on:
       - api-gateway
-    deploy:
-      resources:
-        limits:
-          memory: 64M
+    mem_limit: 32m
     restart: unless-stopped
 
 volumes:
-  user-db-data:
-  blog-db-data:
-  blog-uploads:
+  pg-data:
   redis-data:
+  blog-uploads:
