@@ -52,7 +52,10 @@ const MAX_TILT = 0.95;  // nearly edge-on
   template: `<canvas #cosmicCanvas class="cosmic-canvas"></canvas>`,
   styles: [`
     :host { display: block; position: absolute; inset: 0; z-index: 0; }
-    .cosmic-canvas { width: 100%; height: 100%; display: block; touch-action: none; }
+    .cosmic-canvas { width: 100%; height: 100%; display: block; touch-action: auto; }
+    @media (max-width: 1024px) {
+      :host, .cosmic-canvas { pointer-events: none; }
+    }
   `]
 })
 export class CosmicCanvasComponent implements AfterViewInit, OnDestroy {
@@ -154,7 +157,7 @@ export class CosmicCanvasComponent implements AfterViewInit, OnDestroy {
       this.zoom = 1; this.tilt = 0.28; this.camRotation = 0;
     });
 
-    this.on(canvas, 'touchend', () => { this.isDragging = false; });
+    this.on(canvas, 'touchend', () => { this.isDragging = false; }, { passive: true });
 
     this.ngZone.runOutsideAngular(() => {
       this.lastTime = performance.now();
