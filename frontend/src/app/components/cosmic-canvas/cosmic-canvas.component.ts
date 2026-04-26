@@ -52,9 +52,9 @@ const MAX_TILT = 0.95;  // nearly edge-on
   template: `<canvas #cosmicCanvas class="cosmic-canvas"></canvas>`,
   styles: [`
     :host { display: block; position: absolute; inset: 0; z-index: 0; }
-    .cosmic-canvas { width: 100%; height: 100%; display: block; touch-action: auto; }
-    @media (max-width: 1024px) {
-      :host, .cosmic-canvas { pointer-events: none; }
+    .cosmic-canvas { width: 100%; height: 100%; display: block; }
+    @media (pointer: coarse) {
+      :host, .cosmic-canvas { pointer-events: none !important; touch-action: auto !important; }
     }
   `]
 })
@@ -100,6 +100,8 @@ export class CosmicCanvasComponent implements AfterViewInit, OnDestroy {
   private controlsHintAlpha = 1;
   private controlsHintTimer = 0;
 
+  private isTouchDevice = false;
+
   // Bound event handlers for cleanup
   private handlers: { el: EventTarget; ev: string; fn: EventListener }[] = [];
 
@@ -114,50 +116,52 @@ export class CosmicCanvasComponent implements AfterViewInit, OnDestroy {
     this.resizeObs = new ResizeObserver(() => { this.resize(canvas); this.initAll(); });
     this.resizeObs.observe(canvas.parentElement!);
 
-    this.on(canvas, 'mousemove', (e: Event) => {
-      const me = e as MouseEvent;
-      const rect = canvas.getBoundingClientRect();
-      this.mouseX = ((me.clientX - rect.left) / rect.width - 0.5) * 2;
-      this.mouseY = ((me.clientY - rect.top) / rect.height - 0.5) * 2;
+    this.isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-      if (this.isDragging) {
-        const dx = me.clientX - this.dragStartX;
-        const dy = me.clientY - this.dragStartY;
-        this.camRotation = this.dragStartRotation + dx * 0.005;
-        this.tilt = Math.max(MIN_TILT, Math.min(MAX_TILT, this.dragStartTilt - dy * 0.002));
-      }
-    });
+    if (!this.isTouchDevice) {
+      this.on(canvas, 'mousemove', (e: Event) => {
+        const me = e as MouseEvent;
+        const rect = canvas.getBoundingClientRect();
+        this.mouseX = ((me.clientX - rect.left) / rect.width - 0.5) * 2;
+        this.mouseY = ((me.clientY - rect.top) / rect.height - 0.5) * 2;
 
-    this.on(canvas, 'mouseleave', () => {
-      this.mouseX = 0; this.mouseY = 0;
-      this.isDragging = false;
-      canvas.style.cursor = 'crosshair';
-    });
+        if (this.isDragging) {
+          const dx = me.clientX - this.dragStartX;
+          const dy = me.clientY - this.dragStartY;
+          this.camRotation = this.dragStartRotation + dx * 0.005;
+          this.tilt = Math.max(MIN_TILT, Math.min(MAX_TILT, this.dragStartTilt - dy * 0.002));
+        }
+      });
 
-    this.on(canvas, 'mousedown', (e: Event) => {
-      const me = e as MouseEvent;
-      if (me.button !== 0) return;
-      this.isDragging = true;
-      this.dragStartX = me.clientX;
-      this.dragStartY = me.clientY;
-      this.dragStartTilt = this.tilt;
-      this.dragStartRotation = this.camRotation;
-      canvas.style.cursor = 'grabbing';
-      this.fadeHint();
-    });
-
-    this.on(window, 'mouseup', () => {
-      if (this.isDragging) {
+      this.on(canvas, 'mouseleave', () => {
+        this.mouseX = 0; this.mouseY = 0;
         this.isDragging = false;
         canvas.style.cursor = 'crosshair';
-      }
-    });
+      });
 
-    this.on(canvas, 'dblclick', () => {
-      this.zoom = 1; this.tilt = 0.28; this.camRotation = 0;
-    });
+      this.on(canvas, 'mousedown', (e: Event) => {
+        const me = e as MouseEvent;
+        if (me.button !== 0) return;
+        this.isDragging = true;
+        this.dragStartX = me.clientX;
+        this.dragStartY = me.clientY;
+        this.dragStartTilt = this.tilt;
+        this.dragStartRotation = this.camRotation;
+        canvas.style.cursor = 'grabbing';
+        this.fadeHint();
+      });
 
-    this.on(canvas, 'touchend', () => { this.isDragging = false; }, { passive: true });
+      this.on(window, 'mouseup', () => {
+        if (this.isDragging) {
+          this.isDragging = false;
+          canvas.style.cursor = 'crosshair';
+        }
+      });
+
+      this.on(canvas, 'dblclick', () => {
+        this.zoom = 1; this.tilt = 0.28; this.camRotation = 0;
+      });
+    }
 
     this.ngZone.runOutsideAngular(() => {
       this.lastTime = performance.now();
@@ -656,7 +660,7 @@ export class CosmicCanvasComponent implements AfterViewInit, OnDestroy {
   // ===== Controls hint (fades after 5s or on interaction) =====
 
   private drawControlsHint(): void {
-    if (this.controlsHintAlpha <= 0) return;
+    if (this.controlsHintAlpha <= 0 || this.isTouchDevice) return;
     const a = this.controlsHintAlpha;
     this.ctx.save();
     this.ctx.globalAlpha = a * 0.7;
