@@ -41,7 +41,7 @@ import { NotificationService } from '../../services/notification.service';
 
         <ul class="nav-links" [class.open]="menuOpen">
           <li><a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" (click)="menuOpen=false">Home</a></li>
-          <li><a routerLink="/posts" routerLinkActive="active" (click)="menuOpen=false">All Posts</a></li>
+          <li><a routerLink="/posts" routerLinkActive="active" (click)="menuOpen=false">Posts</a></li>
           <li><a routerLink="/about" routerLinkActive="active" (click)="menuOpen=false">About</a></li>
           @if (auth.isLoggedIn()) {
             <li><a routerLink="/create-blog" routerLinkActive="active" (click)="menuOpen=false">Create Blog</a></li>
