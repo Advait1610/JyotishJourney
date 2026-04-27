@@ -90,11 +90,13 @@ import { CosmicCanvasComponent } from '../../components/cosmic-canvas/cosmic-can
     }
 
     @media (max-width: 768px) {
+      .hero { padding-bottom: 15vh; }
       .hero-title { font-size: 2.8rem; letter-spacing: 0.02em; }
       .hero-subtitle { font-size: 1rem; max-width: 400px; }
     }
 
     @media (max-width: 576px) {
+      .hero { padding-bottom: 18vh; }
       .hero-content { padding: 16px; }
       .hero-title { font-size: 2.2rem; margin-bottom: 16px; }
       .hero-subtitle { font-size: 0.9rem; max-width: 320px; margin-bottom: 24px; }
