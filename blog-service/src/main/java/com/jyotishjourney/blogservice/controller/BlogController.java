@@ -157,9 +157,21 @@ public class BlogController {
         Path filePath = imageStorageService.getImagePath(filename);
         Resource resource = new UrlResource(filePath.toUri());
 
+        if (!resource.exists() || !resource.isReadable()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        String contentType = "image/jpeg";
+        String lower = filename.toLowerCase();
+        if (lower.endsWith(".png")) contentType = "image/png";
+        else if (lower.endsWith(".gif")) contentType = "image/gif";
+        else if (lower.endsWith(".webp")) contentType = "image/webp";
+        else if (lower.endsWith(".svg")) contentType = "image/svg+xml";
+
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
-                .contentType(MediaType.IMAGE_JPEG)
+                .header(HttpHeaders.CACHE_CONTROL, "public, max-age=86400")
+                .contentType(MediaType.parseMediaType(contentType))
                 .body(resource);
     }
 
