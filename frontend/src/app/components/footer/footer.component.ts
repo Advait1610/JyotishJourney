@@ -20,8 +20,8 @@ import { RouterModule } from '@angular/router';
         </div>
         <div class="footer-contact">
           <h4>Reach Out</h4>
-          <p>contact&#64;jyotishjourney.com</p>
-          <p>+91 98765 43210</p>
+          <p>naikadvait2002&#64;gmail.com</p>
+          <p>+91 9322120779</p>
         </div>
       </div>
       <div class="footer-bottom">
