@@ -10,10 +10,10 @@ import { Blog } from '../../models/blog.model';
   template: `
     <a [routerLink]="['/blog', blog.id]" class="card blog-card">
       <div class="card-image">
-        @if (blog.coverImageUrl && !imgError) {
+        @if (blog.coverImageUrl?.trim() && !imgError) {
           <img [src]="blog.coverImageUrl" alt="" loading="lazy" (error)="imgError = true"/>
         }
-        @if (!blog.coverImageUrl || imgError) {
+        @if (!blog.coverImageUrl?.trim() || imgError) {
           <div class="placeholder-image">
             <svg viewBox="0 0 400 200" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
               <defs>

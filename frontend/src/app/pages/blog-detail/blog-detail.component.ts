@@ -17,9 +17,9 @@ import { Blog, Comment } from '../../models/blog.model';
     } @else if (blog) {
       <article class="blog-detail">
         <!-- Cover Image -->
-        @if (blog.coverImageUrl) {
+        @if (blog.coverImageUrl?.trim() && !coverImgError) {
           <div class="cover-image" (click)="openLightbox(blog.coverImageUrl)">
-            <img [src]="blog.coverImageUrl" [alt]="blog.title" />
+            <img [src]="blog.coverImageUrl" [alt]="blog.title" (error)="coverImgError = true" />
             <div class="cover-overlay"></div>
             <span class="click-hint">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
@@ -633,6 +633,7 @@ export class BlogDetailComponent implements OnInit {
   formattedContent = '';
   lightboxOpen = false;
   lightboxSrc = '';
+  coverImgError = false;
 
   constructor(
     private route: ActivatedRoute,
