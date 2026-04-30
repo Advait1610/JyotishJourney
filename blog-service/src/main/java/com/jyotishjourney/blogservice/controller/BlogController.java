@@ -72,6 +72,15 @@ public class BlogController {
         return ResponseEntity.ok(blogService.getHotBlogs(userId));
     }
 
+    @GetMapping("/my")
+    public ResponseEntity<Page<BlogResponse>> getMyBlogs(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int size,
+            @RequestHeader("X-User-Id") Long userId) {
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(blogService.getMyBlogs(userId, pageable));
+    }
+
     @GetMapping("/pending")
     public ResponseEntity<Page<BlogResponse>> getPendingBlogs(
             @RequestParam(defaultValue = "0") int page,

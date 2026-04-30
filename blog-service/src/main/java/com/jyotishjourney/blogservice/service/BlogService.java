@@ -89,6 +89,12 @@ public class BlogService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public Page<BlogResponse> getMyBlogs(Long authorId, Pageable pageable) {
+        return blogRepository.findByAuthorIdOrderByCreatedAtDesc(authorId, pageable)
+                .map(blog -> mapToResponse(blog, authorId));
+    }
+
     public Page<BlogResponse> getPendingBlogs(Pageable pageable, String adminEmail) {
         if (!isAdmin(adminEmail)) {
             throw new RuntimeException("Only admin can view pending blogs");
@@ -157,8 +163,10 @@ public class BlogService {
             blog.getTags().addAll(request.getTags());
         }
 
+        blog.setStatus(BlogStatus.PENDING);
+
         blog = blogRepository.save(blog);
-        log.info("Blog updated (id={}), evicted caches", id);
+        log.info("Blog updated (id={}), set to PENDING for re-approval, evicted caches", id);
         return mapToResponse(blog, userId);
     }
 

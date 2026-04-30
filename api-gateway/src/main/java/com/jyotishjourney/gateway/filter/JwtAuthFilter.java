@@ -72,7 +72,8 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
 
     private static final List<String> AUTH_REQUIRED_BLOG_PATHS = List.of(
             "/api/blogs/pending",
-            "/api/blogs/notifications"
+            "/api/blogs/notifications",
+            "/api/blogs/my"
     );
 
     private boolean isPublicReadRequest(ServerHttpRequest request, String path) {

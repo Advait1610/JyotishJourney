@@ -42,6 +42,11 @@ export class BlogService {
     return this.http.delete<void>(`${this.API}/${id}`);
   }
 
+  getMyBlogs(page = 0, size = 12): Observable<PageResponse<Blog>> {
+    const params = new HttpParams().set('page', String(page)).set('size', String(size));
+    return this.http.get<PageResponse<Blog>>(`${this.API}/my`, { params });
+  }
+
   getPendingBlogs(page = 0, size = 20): Observable<PageResponse<Blog>> {
     const params = new HttpParams().set('page', String(page)).set('size', String(size));
     return this.http.get<PageResponse<Blog>>(`${this.API}/pending`, { params });

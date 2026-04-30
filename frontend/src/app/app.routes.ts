@@ -34,6 +34,12 @@ export const routes: Routes = [
     data: { animation: 'BlogDetail' }
   },
   {
+    path: 'my-blogs',
+    loadComponent: () => import('./pages/my-blogs/my-blogs.component').then(m => m.MyBlogsComponent),
+    canActivate: [AuthGuard],
+    data: { animation: 'MyBlogs' }
+  },
+  {
     path: 'create-blog',
     loadComponent: () => import('./pages/create-blog/create-blog.component').then(m => m.CreateBlogComponent),
     canActivate: [AuthGuard],
