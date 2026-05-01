@@ -21,8 +21,15 @@ import { BlogService } from '../../services/blog.service';
         <div class="form-card">
           <!-- Title -->
           <div class="form-field">
-            <label>Title</label>
-            <input type="text" [(ngModel)]="title" placeholder="Enter an inspiring title..." maxlength="300" />
+            <label>Title <span class="required">*</span></label>
+            <input type="text" [(ngModel)]="title" placeholder="Enter an inspiring title..." maxlength="300"
+                   [class.field-error]="submitted && !title.trim()" (input)="clearFieldError('title')" />
+            @if (submitted && !title.trim()) {
+              <span class="field-error-msg">Title is required</span>
+            }
+            @if (submitted && title.trim() && title.trim().length < 5) {
+              <span class="field-error-msg">Title must be at least 5 characters</span>
+            }
           </div>
 
           <!-- Cover Image Upload -->
@@ -45,8 +52,8 @@ import { BlogService } from '../../services/blog.service';
 
           <!-- Tags -->
           <div class="form-field">
-            <label>Tags</label>
-            <div class="tags-input">
+            <label>Tags <span class="required">*</span></label>
+            <div class="tags-input" [class.field-error]="submitted && tags.length === 0">
               @for (tag of tags; track tag) {
                 <span class="tag-chip">
                   {{ tag }}
@@ -56,17 +63,25 @@ import { BlogService } from '../../services/blog.service';
               <input type="text" [(ngModel)]="tagInput" placeholder="Add tag & press Enter"
                      (keydown.enter)="addTag()" (keydown.comma)="addTag()" />
             </div>
+            @if (submitted && tags.length === 0) {
+              <span class="field-error-msg">At least one tag is required</span>
+            }
           </div>
 
           <!-- Rich Text Editor -->
           <div class="form-field">
-            <label>Content</label>
+            <label>Content <span class="required">*</span></label>
             <quill-editor
               [(ngModel)]="description"
               [modules]="quillModules"
               [styles]="{minHeight: '350px'}"
+              [class.field-error]="submitted && !description.trim()"
               placeholder="Write your blog content here..."
+              (onContentChanged)="clearFieldError('description')"
             ></quill-editor>
+            @if (submitted && !description.trim()) {
+              <span class="field-error-msg">Content is required</span>
+            }
           </div>
 
           <!-- Preview Toggle -->
@@ -96,7 +111,7 @@ import { BlogService } from '../../services/blog.service';
 
           <!-- Submit -->
           <div class="form-actions">
-            <button class="btn-primary" (click)="showPublishModal = true" [disabled]="submitting">
+            <button class="btn-primary" (click)="attemptPublish()" [disabled]="submitting">
               {{ submitting ? 'Submitting...' : 'Publish Blog' }}
             </button>
           </div>
@@ -170,6 +185,21 @@ import { BlogService } from '../../services/blog.service';
       padding: 12px 16px;
       border-radius: 10px;
       margin-bottom: 20px;
+    }
+
+    .required {
+      color: var(--jj-danger, #e74c3c);
+    }
+
+    .field-error {
+      border-color: var(--jj-danger, #e74c3c) !important;
+    }
+
+    .field-error-msg {
+      display: block;
+      color: var(--jj-danger, #e74c3c);
+      font-size: 0.82rem;
+      margin-top: 6px;
     }
 
     .form-card {
@@ -418,6 +448,7 @@ export class CreateBlogComponent {
   error = '';
   showPublishModal = false;
   showSuccessMsg = false;
+  submitted = false;
 
   quillModules = {
     toolbar: {
@@ -490,9 +521,32 @@ export class CreateBlogComponent {
     this.tags = this.tags.filter(t => t !== tag);
   }
 
+  attemptPublish(): void {
+    this.submitted = true;
+    if (!this.validateForm()) return;
+    this.showPublishModal = true;
+  }
+
+  validateForm(): boolean {
+    const errors: string[] = [];
+    if (!this.title.trim()) errors.push('Title is required');
+    else if (this.title.trim().length < 5) errors.push('Title must be at least 5 characters');
+    if (this.tags.length === 0) errors.push('At least one tag is required');
+    if (!this.description.trim()) errors.push('Content is required');
+
+    this.error = errors.length ? errors.join('. ') : '';
+    return errors.length === 0;
+  }
+
+  clearFieldError(_field: string): void {
+    if (this.submitted) {
+      this.validateForm();
+    }
+  }
+
   onSubmit(): void {
-    if (!this.title.trim() || !this.description.trim()) {
-      this.error = 'Title and content are required';
+    this.submitted = true;
+    if (!this.validateForm()) {
       this.showPublishModal = false;
       return;
     }
