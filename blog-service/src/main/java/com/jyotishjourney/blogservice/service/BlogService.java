@@ -43,18 +43,28 @@ public class BlogService {
             @CacheEvict(value = "hotBlogs", allEntries = true)
     })
     public BlogResponse createBlog(BlogRequest request, Long authorId, String authorName) {
+        return createBlog(request, authorId, authorName, null);
+    }
+
+    @Caching(evict = {
+            @CacheEvict(value = "blogs", allEntries = true),
+            @CacheEvict(value = "hotBlogs", allEntries = true)
+    })
+    public BlogResponse createBlog(BlogRequest request, Long authorId, String authorName, String authorEmail) {
+        BlogStatus status = isAdmin(authorEmail) ? BlogStatus.APPROVED : BlogStatus.PENDING;
+
         Blog blog = Blog.builder()
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .coverImageUrl(request.getCoverImageUrl())
                 .authorId(authorId)
                 .authorName(authorName)
-                .status(BlogStatus.PENDING)
+                .status(status)
                 .tags(request.getTags() != null ? request.getTags() : List.of())
                 .build();
 
         blog = blogRepository.save(blog);
-        log.info("Blog created (id={}), evicted blogs/hotBlogs caches", blog.getId());
+        log.info("Blog created (id={}, status={}), evicted blogs/hotBlogs caches", blog.getId(), status);
         return mapToResponse(blog, null);
     }
 
@@ -95,6 +105,7 @@ public class BlogService {
                 .map(blog -> mapToResponse(blog, authorId));
     }
 
+    @Transactional(readOnly = true)
     public Page<BlogResponse> getPendingBlogs(Pageable pageable, String adminEmail) {
         if (!isAdmin(adminEmail)) {
             throw new RuntimeException("Only admin can view pending blogs");

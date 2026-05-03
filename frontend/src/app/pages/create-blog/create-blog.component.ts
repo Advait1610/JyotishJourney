@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { QuillModule } from 'ngx-quill';
 import { BlogService } from '../../services/blog.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-create-blog',
@@ -124,7 +125,7 @@ import { BlogService } from '../../services/blog.service';
         <div class="modal-card" (click)="$event.stopPropagation()">
           <h3>Confirm Publish</h3>
           <p>Are you sure you want to publish this post?</p>
-          <p class="modal-note">Your post will be reviewed by an admin before it goes live.</p>
+          <p class="modal-note">{{ auth.isAdmin() ? 'Your post will be published immediately.' : 'Your post will be reviewed by an admin before it goes live.' }}</p>
           <div class="modal-actions">
             <button class="btn-outline" (click)="showPublishModal = false">No, Go Back</button>
             <button class="btn-primary" (click)="onSubmit()" [disabled]="submitting">
@@ -139,8 +140,8 @@ import { BlogService } from '../../services/blog.service';
       <div class="modal-overlay">
         <div class="modal-card success-card">
           <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#27ae60" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-          <h3>Post Submitted!</h3>
-          <p>Your post has been submitted for review. It will be published once approved by the admin.</p>
+          <h3>{{ auth.isAdmin() ? 'Post Published!' : 'Post Submitted!' }}</h3>
+          <p>{{ auth.isAdmin() ? 'Your post has been published and is now live.' : 'Your post has been submitted for review. It will be published once approved by the admin.' }}</p>
           <button class="btn-primary" (click)="goHome()">Go to Home</button>
         </div>
       </div>
@@ -467,7 +468,7 @@ export class CreateBlogComponent {
 
   private quillEditor: any;
 
-  constructor(private blogService: BlogService, private router: Router) {}
+  constructor(private blogService: BlogService, private router: Router, public auth: AuthService) {}
 
   imageHandler(): void {
     const input = document.createElement('input');

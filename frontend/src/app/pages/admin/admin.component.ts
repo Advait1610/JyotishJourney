@@ -25,7 +25,14 @@ import { LoadingSpinnerComponent } from '../../components/loading-spinner/loadin
           </div>
         </header>
 
-        @if (loading) {
+        @if (error) {
+          <div class="error-state">
+            <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#e74c3c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            <h3>Failed to load pending posts</h3>
+            <p>{{ error }}</p>
+            <button class="btn-outline" (click)="retry()">Try Again</button>
+          </div>
+        } @else if (loading) {
           <app-loading-spinner mode="fullpage" message="Loading pending posts..." />
         } @else if (pendingBlogs.length === 0) {
           <div class="empty-state">
@@ -147,13 +154,19 @@ import { LoadingSpinnerComponent } from '../../components/loading-spinner/loadin
       white-space: nowrap;
     }
 
-    .empty-state {
+    .empty-state, .error-state {
       text-align: center;
       padding: 80px 20px;
       color: var(--jj-text-muted);
 
       svg { opacity: 0.4; margin-bottom: 16px; }
       h3 { margin-bottom: 8px; color: var(--jj-text-bright); }
+    }
+
+    .error-state {
+      h3 { color: var(--jj-danger); }
+      p { margin-bottom: 16px; font-size: 0.9rem; }
+      svg { opacity: 0.7; }
     }
 
     .posts-list {
@@ -475,6 +488,7 @@ export class AdminComponent implements OnInit {
   totalPending = 0;
   actioningId: number | null = null;
   expandedId: number | null = null;
+  error = '';
 
   constructor(private blogService: BlogService) {}
 
@@ -495,11 +509,20 @@ export class AdminComponent implements OnInit {
         this.loading = false;
         this.loadingMore = false;
       },
-      error: () => {
+      error: (err) => {
         this.loading = false;
         this.loadingMore = false;
+        this.error = err.error?.error || err.message || 'Something went wrong. Please try again.';
       }
     });
+  }
+
+  retry(): void {
+    this.error = '';
+    this.loading = true;
+    this.pendingBlogs = [];
+    this.currentPage = 0;
+    this.loadPending();
   }
 
   loadMore(): void {

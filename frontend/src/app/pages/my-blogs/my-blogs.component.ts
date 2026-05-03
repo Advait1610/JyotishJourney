@@ -35,7 +35,14 @@ import { Blog } from '../../models/blog.model';
           </button>
         </div>
 
-        @if (loading && currentPage === 0) {
+        @if (error) {
+          <div class="error-state">
+            <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#e74c3c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            <h3>Failed to load your blogs</h3>
+            <p>{{ error }}</p>
+            <button class="btn-outline" (click)="retry()">Try Again</button>
+          </div>
+        } @else if (loading && currentPage === 0) {
           <app-loading-spinner mode="fullpage" message="Loading your blogs..." />
         } @else if (filteredBlogs.length === 0) {
           <div class="empty-state">
@@ -193,7 +200,7 @@ import { Blog } from '../../models/blog.model';
       margin-top: 40px;
     }
 
-    .empty-state {
+    .empty-state, .error-state {
       text-align: center;
       padding: 80px 20px;
 
@@ -215,6 +222,12 @@ import { Blog } from '../../models/blog.model';
         opacity: 0.7;
         margin-bottom: 20px;
       }
+    }
+
+    .error-state {
+      h3 { color: var(--jj-danger, #e74c3c); }
+      p { font-size: 0.9rem; }
+      svg { opacity: 0.7; color: var(--jj-danger, #e74c3c); }
     }
 
     @media (max-width: 768px) {
@@ -244,6 +257,7 @@ export class MyBlogsComponent implements OnInit {
   currentPage = 0;
   lastPage = false;
   activeFilter = 'all';
+  error = '';
 
   constructor(
     private blogService: BlogService,
@@ -263,6 +277,15 @@ export class MyBlogsComponent implements OnInit {
     return this.blogs.filter(b => b.status === status).length;
   }
 
+  retry(): void {
+    this.error = '';
+    this.loading = true;
+    this.blogs = [];
+    this.filteredBlogs = [];
+    this.currentPage = 0;
+    this.loadBlogs();
+  }
+
   loadMore(): void {
     this.loadingMore = true;
     this.currentPage++;
@@ -278,9 +301,10 @@ export class MyBlogsComponent implements OnInit {
         this.loadingMore = false;
         this.applyFilter();
       },
-      error: () => {
+      error: (err) => {
         this.loading = false;
         this.loadingMore = false;
+        this.error = err.error?.error || err.message || 'Something went wrong. Please try again.';
       }
     });
   }

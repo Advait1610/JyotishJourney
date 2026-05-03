@@ -34,8 +34,9 @@ public class BlogController {
     public ResponseEntity<BlogResponse> createBlog(
             @Valid @RequestBody BlogRequest request,
             @RequestHeader("X-User-Id") Long userId,
-            @RequestHeader("X-User-Name") String userName) {
-        return ResponseEntity.ok(blogService.createBlog(request, userId, userName));
+            @RequestHeader("X-User-Name") String userName,
+            @RequestHeader(value = "X-User-Email", required = false) String userEmail) {
+        return ResponseEntity.ok(blogService.createBlog(request, userId, userName, userEmail));
     }
 
     @GetMapping("/{id}")
