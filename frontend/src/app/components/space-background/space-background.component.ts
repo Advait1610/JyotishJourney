@@ -20,6 +20,7 @@ interface FloatingPlanet {
   hasBands: boolean;
   bandColor: string;
   glowColor: string;
+  glowScale: number;
 }
 
 interface Nebula {
@@ -154,9 +155,15 @@ export class SpaceBackgroundComponent implements AfterViewInit, OnDestroy {
       { colors: ['#3f54ba', '#5566dd'], glow: 'rgba(63,84,186,', ring: false, bands: false, bc: '' },
     ];
 
-    // Place planets in a grid pattern to guarantee even spread across the screen
-    const cols = 4;
-    const rows = 3;
+    let cols: number, rows: number, maxSize: number, glowScale: number;
+    if (this.w < 480) {
+      cols = 2; rows = 1; maxSize = 18; glowScale = 0.4;
+    } else if (this.w < 768) {
+      cols = 2; rows = 2; maxSize = 22; glowScale = 0.55;
+    } else {
+      cols = 4; rows = 3; maxSize = 36; glowScale = 1;
+    }
+
     const count = cols * rows;
     const cellW = this.w / cols;
     const cellH = this.h / rows;
@@ -166,10 +173,9 @@ export class SpaceBackgroundComponent implements AfterViewInit, OnDestroy {
       const row = Math.floor(i / cols);
       const t = templates[i % templates.length];
       const depth = 0.15 + Math.random() * 0.85;
-      const sizeBase = 8 + Math.random() * 28;
+      const sizeBase = 8 + Math.random() * (maxSize - 8);
       const size = sizeBase * (0.4 + depth * 0.6);
 
-      // Position within grid cell with jitter so it doesn't look rigid
       const jitterX = (Math.random() - 0.5) * cellW * 0.7;
       const jitterY = (Math.random() - 0.5) * cellH * 0.6;
 
@@ -187,7 +193,8 @@ export class SpaceBackgroundComponent implements AfterViewInit, OnDestroy {
         ringColor: 'rgba(210,190,130,0.35)',
         hasBands: t.bands && size > 10,
         bandColor: t.bc,
-        glowColor: t.glow
+        glowColor: t.glow,
+        glowScale
       });
     }
     this.planets.sort((a, b) => a.depth - b.depth);
@@ -297,8 +304,8 @@ export class SpaceBackgroundComponent implements AfterViewInit, OnDestroy {
       const py = p.y + Math.cos(t * p.driftSpeed * 0.8 + p.driftOffset) * p.driftY;
       const size = p.size;
 
-      const ga = 0.08 + p.depth * 0.08;
-      const gr = size * 3.5;
+      const ga = (0.08 + p.depth * 0.08) * p.glowScale;
+      const gr = size * 3.5 * p.glowScale;
       const gg = this.ctx.createRadialGradient(px, py, 0, px, py, gr);
       gg.addColorStop(0, p.glowColor + ga + ')');
       gg.addColorStop(1, p.glowColor + '0)');

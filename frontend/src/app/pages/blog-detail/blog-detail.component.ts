@@ -7,6 +7,12 @@ import { BlogService } from '../../services/blog.service';
 import { AuthService } from '../../services/auth.service';
 import { Blog, Comment } from '../../models/blog.model';
 
+interface TocItem {
+  text: string;
+  id: string;
+  level: number;
+}
+
 @Component({
   selector: 'app-blog-detail',
   standalone: true,
@@ -86,7 +92,7 @@ import { Blog, Comment } from '../../models/blog.model';
                 <span class="author-avatar">{{ blog.authorName?.charAt(0) || 'A' }}</span>
                 <div>
                   <span class="author-name">{{ blog.authorName }}</span>
-                  <span class="blog-date">{{ blog.createdAt | date:'MMMM d, yyyy' }}</span>
+                  <span class="blog-date">{{ blog.createdAt | date:'MMMM d, yyyy' }} <span class="read-time">{{ readTime }} min read</span></span>
                 </div>
               </div>
 
@@ -104,6 +110,26 @@ import { Blog, Comment } from '../../models/blog.model';
               }
             </div>
           </header>
+
+          <!-- Table of Contents -->
+          @if (tocItems.length >= 2) {
+            <nav class="toc-card">
+              <button class="toc-toggle" (click)="tocOpen = !tocOpen">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                Table of Contents
+                <svg class="toc-chevron" [class.rotated]="tocOpen" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              @if (tocOpen) {
+                <ol class="toc-list">
+                  @for (item of tocItems; track item.id) {
+                    <li [class.toc-h3]="item.level === 3">
+                      <a (click)="scrollToHeading(item.id); $event.preventDefault()" href="javascript:void(0)">{{ item.text }}</a>
+                    </li>
+                  }
+                </ol>
+              }
+            </nav>
+          }
 
           <!-- Content -->
           <div class="blog-content" [innerHTML]="formattedContent" (click)="onContentClick($event)"></div>
@@ -359,6 +385,92 @@ import { Blog, Comment } from '../../models/blog.model';
       color: var(--jj-text-muted);
     }
 
+    .read-time {
+      display: inline-block;
+      margin-left: 8px;
+      padding: 2px 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border-radius: 12px;
+      background: rgba(106, 13, 173, 0.15);
+      color: var(--jj-primary-light);
+      border: 1px solid rgba(106, 13, 173, 0.25);
+      vertical-align: middle;
+    }
+
+    .toc-card {
+      margin-bottom: 32px;
+      background: var(--jj-bg-card);
+      border: 1px solid var(--jj-border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .toc-toggle {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 20px;
+      background: none;
+      border: none;
+      color: var(--jj-text-bright);
+      font-family: 'Cinzel', serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+
+      &:hover { background: rgba(255,255,255,0.03); }
+
+      .toc-chevron {
+        margin-left: auto;
+        transition: transform 0.3s ease;
+        &.rotated { transform: rotate(180deg); }
+      }
+    }
+
+    .toc-list {
+      list-style: none;
+      padding: 0 20px 16px;
+      margin: 0;
+      counter-reset: toc;
+
+      li {
+        counter-increment: toc;
+        margin-bottom: 6px;
+
+        &::before {
+          content: counter(toc) ".";
+          color: var(--jj-accent);
+          font-weight: 600;
+          margin-right: 8px;
+          font-size: 0.85rem;
+        }
+
+        a {
+          color: var(--jj-text);
+          font-size: 0.92rem;
+          text-decoration: none;
+          transition: color 0.2s;
+
+          &:hover { color: var(--jj-accent); }
+        }
+
+        &.toc-h3 {
+          padding-left: 24px;
+
+          &::before {
+            color: var(--jj-text-muted);
+            font-weight: 500;
+          }
+
+          a { font-size: 0.87rem; color: var(--jj-text-muted); }
+          a:hover { color: var(--jj-accent); }
+        }
+      }
+    }
+
     .blog-actions {
       display: flex;
       gap: 8px;
@@ -592,7 +704,7 @@ import { Blog, Comment } from '../../models/blog.model';
       .cover-image { height: 280px; }
       .blog-title { font-size: 1.8rem; }
       .blog-container { padding: 0 20px 30px; }
-      .blog-content { font-size: 1rem; line-height: 1.8; }
+      .blog-content { font-size: 1.05rem; line-height: 1.85; }
       .blog-engagement { gap: 16px; flex-wrap: wrap; }
       .blog-meta { flex-direction: column; align-items: flex-start; gap: 12px; }
     }
@@ -603,8 +715,8 @@ import { Blog, Comment } from '../../models/blog.model';
       .blog-title { font-size: 1.5rem; margin-bottom: 14px; }
       .blog-header { margin-bottom: 24px; }
       .blog-content {
-        font-size: 0.95rem;
-        line-height: 1.75;
+        font-size: 1rem;
+        line-height: 1.8;
 
         :deep(h2), :deep(h3) { margin: 24px 0 12px; }
         :deep(blockquote) { padding: 10px 16px; margin: 20px 0; }
@@ -634,6 +746,15 @@ export class BlogDetailComponent implements OnInit {
   lightboxOpen = false;
   lightboxSrc = '';
   coverImgError = false;
+  tocItems: TocItem[] = [];
+  tocOpen = true;
+
+  get readTime(): number {
+    if (!this.blog) return 0;
+    const text = this.blog.description.replace(/<[^>]*>/g, '');
+    const words = text.split(/\s+/).filter(w => w.length > 0).length;
+    return Math.max(1, Math.ceil(words / 200));
+  }
 
   constructor(
     private route: ActivatedRoute,
@@ -647,7 +768,10 @@ export class BlogDetailComponent implements OnInit {
     this.blogService.getBlog(id).subscribe({
       next: (blog) => {
         this.blog = blog;
-        this.formattedContent = this.formatContent(blog.description);
+        const formatted = this.formatContent(blog.description);
+        const { html, toc } = this.buildToc(formatted);
+        this.formattedContent = html;
+        this.tocItems = toc;
         this.loading = false;
         this.loadComments();
       },
@@ -721,6 +845,30 @@ export class BlogDetailComponent implements OnInit {
     const target = event.target as HTMLElement;
     if (target.tagName === 'IMG') {
       this.openLightbox((target as HTMLImageElement).src);
+    }
+  }
+
+  private buildToc(html: string): { html: string; toc: TocItem[] } {
+    const toc: TocItem[] = [];
+    const slugCounts = new Map<string, number>();
+    const processed = html.replace(/<(h[23])([^>]*)>([\s\S]*?)<\/\1>/gi, (match, tag, attrs, inner) => {
+      const text = inner.replace(/<[^>]*>/g, '').trim();
+      if (!text) return match;
+      let slug = text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const count = slugCounts.get(slug) || 0;
+      slugCounts.set(slug, count + 1);
+      if (count > 0) slug += '-' + count;
+      const level = tag.toLowerCase() === 'h2' ? 2 : 3;
+      toc.push({ text, id: slug, level });
+      return `<${tag}${attrs} id="${slug}">${inner}</${tag}>`;
+    });
+    return { html: processed, toc };
+  }
+
+  scrollToHeading(id: string): void {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }
 
